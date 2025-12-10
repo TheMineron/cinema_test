@@ -1,0 +1,38 @@
+services:
+  web:
+    build:
+      context: .
+    command: >
+      sh -c "
+      python manage.py migrate &&
+      python manage.py runserver 0.0.0.0:8000
+      "
+    volumes:
+      - .:/app
+    ports:
+      - "8000:8000"
+    environment:
+      - DATABASE_URL=postgres://cinema_user:cinema_password@db:5432/cinema_db
+      - DEBUG=False
+    depends_on:
+      - db
+    networks:
+      - cinema-network
+
+  db:
+    image: postgres:16.8
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    environment:
+      - POSTGRES_DB=cinema_db
+      - POSTGRES_USER=cinema_user
+      - POSTGRES_PASSWORD=cinema_password
+    networks:
+      - cinema-network
+
+volumes:
+  postgres_data:
+
+networks:
+  cinema-network:
+    driver: bridge
