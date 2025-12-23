@@ -1,7 +1,9 @@
 import logging
 
+from django.db import transaction
 from rest_framework import viewsets, status
 from rest_framework.decorators import action
+from rest_framework.exceptions import ValidationError
 from rest_framework.response import Response
 from django.utils import timezone
 from .models import Film, CinemaHall, Screening, Booking
@@ -18,6 +20,15 @@ logger = logging.getLogger(__name__)
 class FilmViewSet(viewsets.ModelViewSet):
 	queryset = Film.objects.all()
 	serializer_class = FilmSerializer
+
+	def get_queryset(self):
+		queryset = Film.objects.all()
+		genre = self.request.query_params.get('genre')
+
+		if genre:
+			queryset = queryset.filter(genre__icontains=genre)
+
+		return queryset
 
 	def create(self, request, *args, **kwargs):
 		try:
@@ -42,14 +53,6 @@ class ScreeningViewSet(viewsets.ModelViewSet):
 
 	def get_queryset(self):
 		queryset = Screening.objects.all()
-		film_id = self.request.query_params.get('film_id')
-		date = self.request.query_params.get('date')
-
-		if film_id:
-			queryset = queryset.filter(film_id=film_id)
-		if date:
-			queryset = queryset.filter(start_time__date=date)
-
 		return queryset.filter(start_time__gte=timezone.now())
 
 	@action(detail=False, methods=['get'])
@@ -63,6 +66,7 @@ class BookingViewSet(viewsets.ModelViewSet):
 	queryset = Booking.objects.all()
 	serializer_class = BookingSerializer
 
+	@transaction.atomic()
 	def create(self, request, *args, **kwargs):
 		try:
 			serializer = self.get_serializer(data=request.data)
@@ -70,22 +74,16 @@ class BookingViewSet(viewsets.ModelViewSet):
 			screening = serializer.validated_data['screening']
 			seats = serializer.validated_data['seats']
 
-			if seats > screening.available_seats:
-				return Response(
-					{'error': f'Недостаточно мест. Доступно: {screening.available_seats}'},
-					status=status.HTTP_400_BAD_REQUEST
-				)
-
 			booking = serializer.save()
 			screening.available_seats -= seats
 			screening.save()
 			logger.info(f"Создана бронь #{booking.booking_reference} на {seats} мест")
 			return Response(serializer.data, status=status.HTTP_201_CREATED)
 
-		except Exception as e:
-			logger.error(f"Ошибка при создании брони: {str(e)}")
+		except ValidationError as e:
+			logger.error(f"Ошибка валидации при создании брони: {e.detail}")
 			return Response(
-				{'error': 'Ошибка при создании брони'},
+				{'error': e.detail},
 				status=status.HTTP_400_BAD_REQUEST
 			)
 

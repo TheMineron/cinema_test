@@ -41,6 +41,11 @@ class BookingSerializer(serializers.ModelSerializer):
 		screening = data.get('screening')
 		seats = data.get('seats')
 
+		if seats is not None and seats <= 0:
+			raise serializers.ValidationError(
+				{"seats": "Количество мест должно быть положительным числом"}
+			)
+
 		if screening and seats:
 			if screening.start_time <= timezone.now():
 				raise serializers.ValidationError("Нельзя забронировать билеты на прошедший сеанс")
