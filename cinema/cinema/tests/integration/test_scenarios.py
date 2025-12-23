@@ -32,7 +32,6 @@ class TestIntegrationScenarios:
 			assert hall_response.status_code == status.HTTP_201_CREATED
 			hall_id = hall_response.data['id']
 
-			# 3. Создаем сеанс
 			start_time = test_time + timedelta(days=2)
 			end_time = start_time + timedelta(minutes=film_data['duration_minutes'] + 30)
 			screening_data = {
@@ -47,7 +46,6 @@ class TestIntegrationScenarios:
 			assert screening_response.status_code == status.HTTP_201_CREATED
 			screening_id = screening_response.data['id']
 
-			# 4. Создаем бронирование
 			booking_data = {
 				'screening': screening_id,
 				'customer_name': 'Интеграционный тест',
