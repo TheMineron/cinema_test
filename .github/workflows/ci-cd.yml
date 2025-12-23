@@ -2,9 +2,9 @@ name: Django CI/CD Pipeline
 
 on:
   push:
-    branches: [ main, develop ]
+    branches: [ main, master, develop ]
   pull_request:
-    branches: [ main ]
+    branches: [ main, master ]
 
 env:
   SECRET_KEY: django-insecure-tr02!ze_6)a%zhb5cx%k_&nv52#wz+eln0$rr(acdd4(k8-9_0
